@@ -1,7 +1,6 @@
-// Set the API URL for the backend server
-const API_URL = 'http://localhost:5000/posts';
 
-// --- GLOBAL STATE & DOM REFERENCES ---------------------------------------
+const API_URL = '/api/posts'; 
+
 
 const postsContainer = document.getElementById('posts-container');
 const postForm = document.getElementById('post-form');
@@ -14,12 +13,7 @@ const newPostContainer = document.getElementById('new-post-container');
 let currentPostToDeleteId = null;
 let currentPostToEditId = null;
 
-// --- UTILITY FUNCTIONS ---------------------------------------------------
 
-/**
- * Handles closing any modal window and clearing associated state.
- * @param {HTMLElement} modal - The modal element to close.
- */
 const closeModal = (modal) => {
     modal.classList.add('hidden');
     if (modal.id === 'confirmation-modal') {
@@ -30,12 +24,7 @@ const closeModal = (modal) => {
     }
 };
 
-/**
- * Fetches data from the API and handles basic error/status checking.
- * @param {string} url - The API endpoint to fetch.
- * @param {object} options - Fetch options (method, headers, body).
- * @returns {Promise<object | null>} The JSON response data or null on error/204/404.
- */
+
 async function apiFetch(url, options = {}) {
     try {
         const response = await fetch(url, options);
@@ -52,41 +41,31 @@ async function apiFetch(url, options = {}) {
         return response.json();
     } catch (error) {
         console.error('API Fetch Error:', error);
-        // Only show a critical error on the main container if we are fetching the post list
+        // Display a general error message if the API call fails
         if (url === API_URL) {
              postsContainer.innerHTML = `<div class="p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg shadow-md">
                 <p class="font-bold">Error connecting to the backend.</p>
-                <p>Ensure the server is running on **http://localhost:5000**.</p>
+                <p>Ensure the Vercel deployment of the API is configured correctly (using the /api route).</p>
             </div>`;
         }
         return null;
     }
 }
 
-// --- RENDERING LOGIC -----------------------------------------------------
 
-/**
- * Renders a single post card for the list view or the full detail view.
- * @param {object} post - The post data object.
- * @param {boolean} isSingleView - Whether to render the full content (true) or a truncated preview (false).
- * @returns {string} HTML string for the post.
- */
 function renderPost(post, isSingleView = false) {
     const formattedDate = new Date(post.created_at).toLocaleDateString('en-US', {
         year: 'numeric', month: 'short', day: 'numeric'
     });
 
-    // Content preparation: Content is treated as plain text from the textarea
     const contentDisplay = post.content || '';
     const plainText = contentDisplay; 
     
     let previewText;
     if (!isSingleView) {
-        // Use the first 300 characters of plain text for list view preview
         previewText = plainText.substring(0, 300) + (plainText.length > 300 ? '...' : '');
     }
 
-    // Image rendering block with robust onerror fallback (loads a placeholder if the URL fails)
     const imageHtml = post.imageUrl
         ? `
         <div class="relative overflow-hidden ${isSingleView ? 'max-h-96' : 'h-64'} w-full">
@@ -110,7 +89,6 @@ function renderPost(post, isSingleView = false) {
         </div>
     `;
 
-    // Full post content view
     if (isSingleView) {
         return `
             <article class="bg-white p-8 rounded-xl shadow-2xl">
@@ -127,7 +105,6 @@ function renderPost(post, isSingleView = false) {
         `;
     }
 
-    // Post list preview card
     return `
         <article class="bg-white rounded-xl shadow-xl hover:shadow-2xl transition duration-300 overflow-hidden">
             ${imageHtml}
@@ -148,11 +125,7 @@ function renderPost(post, isSingleView = false) {
     `;
 }
 
-// --- ROUTING AND CONTENT LOADING -----------------------------------------
 
-/**
- * Main function to load content based on the URL hash (SPA routing).
- */
 async function loadContent() {
     postsContainer.innerHTML = '<div class="text-center py-8 text-gray-500">Loading posts...</div>';
     const hash = window.location.hash.substring(1); // Remove '#'
@@ -172,12 +145,10 @@ async function loadContent() {
             postsContainer.innerHTML = '<div class="p-8 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 rounded-xl shadow-lg">Post Not Found. Check if the ID is correct.</div>';
         }
 
-        // Hide the sidebar admin form for single view
         newPostContainer.classList.add('hidden');
         postsContainer.classList.remove('space-y-8'); 
 
     } else {
-        // Homepage View (List of Posts)
         const posts = await apiFetch(API_URL);
 
         if (posts && posts.length > 0) {
@@ -189,17 +160,12 @@ async function loadContent() {
                     <p class="text-secondary-gray">Start your blog by using the **Create New Post** form to the right.</p>
                 </div>`;
         }
-        // If posts is null, apiFetch already updated the container with an error message.
-
-        // Show the sidebar admin form for list view
         newPostContainer.classList.remove('hidden');
         postsContainer.classList.add('space-y-8');
     }
 }
 
-// --- CRUD HANDLERS -------------------------------------------------------
 
-// --- CREATE (POST) FUNCTIONALITY ---
 
 postForm.addEventListener('submit', async (event) => {
     event.preventDefault();
@@ -245,12 +211,6 @@ postForm.addEventListener('submit', async (event) => {
 });
 
 
-// --- DELETE FUNCTIONALITY ---
-
-/**
- * Opens the confirmation modal for deletion (attached to window for inline use).
- * @param {number} postId - ID of the post to delete.
- */
 window.handleDeleteClick = (postId) => {
     currentPostToDeleteId = postId;
     confirmationModal.classList.remove('hidden');
@@ -271,12 +231,6 @@ confirmDeleteBtn.addEventListener('click', async () => {
 });
 
 
-// --- UPDATE (EDIT) FUNCTIONALITY ---
-
-/**
- * Opens the edit modal and populates it with post data (attached to window for inline use).
- * @param {number} postId - ID of the post to edit.
- */
 window.handleEditClick = async (postId) => {
     const post = await apiFetch(`${API_URL}/${postId}`);
     if (!post) {
@@ -286,12 +240,11 @@ window.handleEditClick = async (postId) => {
 
     currentPostToEditId = postId;
 
-    // Populate the form fields
     document.getElementById('edit-title').value = post.title;
     document.getElementById('edit-author').value = post.author || '';
     document.getElementById('edit-imageUrl').value = post.imageUrl || ''; 
     
-    // IMPORTANT: Populate the standard textarea content directly
+   
     document.getElementById('edit-content').value = post.content || '';
 
     editModal.classList.remove('hidden');
@@ -309,7 +262,6 @@ editForm.addEventListener('submit', async (event) => {
     try {
         const formData = new FormData(editForm);
         
-        // Content retrieval from standard textarea
         const content = formData.get('content');
 
         const updatedPost = {
@@ -329,8 +281,7 @@ editForm.addEventListener('submit', async (event) => {
         if (result) {
             closeModal(editModal);
             console.log('Changes saved successfully!');
-            // Reload content to reflect updates
-            // Check if the user is on a single post view and reload that, otherwise go home
+        
             if (window.location.hash === `#post/${currentPostToEditId}`) {
                 loadContent(); 
             } else {
@@ -347,18 +298,15 @@ editForm.addEventListener('submit', async (event) => {
     }
 });
 
-// --- INITIALIZATION AND EVENT LISTENERS ----------------------------------
-
-// 1. Listen for hash changes to navigate the SPA
 window.addEventListener('hashchange', loadContent);
 
-// 2. Load content on initial page load (after DOM is fully loaded)
+
 window.addEventListener('DOMContentLoaded', loadContent);
 
-// 3. Attach event listeners to close buttons for both modals
+
 [editModal, confirmationModal].forEach(modal => {
     modal.addEventListener('click', (e) => {
-        // Close if clicking the backdrop or an element marked data-action="cancel"
+
         if (e.target === modal || e.target.getAttribute('data-action') === 'cancel') {
             closeModal(modal);
         }
